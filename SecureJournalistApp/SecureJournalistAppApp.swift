@@ -6,12 +6,25 @@
 //
 
 import SwiftUI
+import CoreData
 
 @main
-struct SecureJournalistAppApp: App {
+struct SecureJournalistApp: App {
+    let persistenceController = PersistenceController.shared
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            TabView {
+                HomeView()
+                    .tabItem {
+                        Label("Pesan", systemImage: "message.fill")
+                    }
+                ProfileView()
+                    .tabItem {
+                        Label("Profil", systemImage: "person.fill")
+                    }
+            }
+            .environment(\.managedObjectContext, persistenceController.container.viewContext)
         }
     }
 }

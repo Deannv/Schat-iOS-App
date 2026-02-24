@@ -24,7 +24,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		04863FA22F4446D100BDED71 /* SecureJournalistApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SecureJournalistApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		04863FA22F4446D100BDED71 /* Schat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Schat.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		04863FAF2F4446D300BDED71 /* SecureJournalistAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SecureJournalistAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		04863FB92F4446D300BDED71 /* SecureJournalistAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SecureJournalistAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -85,7 +85,7 @@
 		04863FA32F4446D100BDED71 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				04863FA22F4446D100BDED71 /* SecureJournalistApp.app */,
+				04863FA22F4446D100BDED71 /* Schat.app */,
 				04863FAF2F4446D300BDED71 /* SecureJournalistAppTests.xctest */,
 				04863FB92F4446D300BDED71 /* SecureJournalistAppUITests.xctest */,
 			);
@@ -114,7 +114,7 @@
 			packageProductDependencies = (
 			);
 			productName = SecureJournalistApp;
-			productReference = 04863FA22F4446D100BDED71 /* SecureJournalistApp.app */;
+			productReference = 04863FA22F4446D100BDED71 /* Schat.app */;
 			productType = "com.apple.product-type.application";
 		};
 		04863FAE2F4446D300BDED71 /* SecureJournalistAppTests */ = {
@@ -400,18 +400,22 @@
 				DEVELOPMENT_TEAM = 98Y6GRMSNC;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Aplikasi membutuhkan kamera untuk mengambil foto sebagai media pengirim pesan.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Aplikasi membutuhkan mikrofon untuk merekam audio berita.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Aplikasi perlu menyimpan gambar hasil enkripsi ke galeri.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = kemas.SecureJournalistApp;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = Schat;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -432,18 +436,22 @@
 				DEVELOPMENT_TEAM = 98Y6GRMSNC;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Aplikasi membutuhkan kamera untuk mengambil foto sebagai media pengirim pesan.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Aplikasi membutuhkan mikrofon untuk merekam audio berita.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Aplikasi perlu menyimpan gambar hasil enkripsi ke galeri.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = kemas.SecureJournalistApp;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = Schat;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
