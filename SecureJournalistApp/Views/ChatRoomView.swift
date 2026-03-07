@@ -190,7 +190,7 @@ struct ChatRoomView: View {
                             )
                             .clipShape(Capsule())
                         }
-                        .disabled(viewModel.selectedCoverImage == nil || viewModel.isRecording || viewModel.isProcessing || viewModel.currentRecordingTime == 0)
+                        .disabled(viewModel.selectedCoverImage == nil || viewModel.isRecording || viewModel.isProcessing)
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 12)

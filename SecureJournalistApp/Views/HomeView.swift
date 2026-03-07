@@ -10,6 +10,7 @@ import CoreData
 
 struct HomeView: View {
     @Environment(\.managedObjectContext) private var viewContext
+    @AppStorage("isOnboarding") var isOnboarding: Bool?
     
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \ChatSession.timestamp, ascending: false)],
@@ -20,6 +21,7 @@ struct HomeView: View {
     @State private var navigationPath = NavigationPath()
     
     @State private var searchText = ""
+    @State private var selectedContactToNavigate: Contact? = nil
     
     var filteredSessions: [ChatSession] {
         if searchText.isEmpty {
@@ -61,9 +63,9 @@ struct HomeView: View {
                 ForEach(filteredSessions) { session in
                     NavigationLink(value: session) {
                         HStack {
-                            Image(systemName: "lock.shield.fill")
+                            Image(systemName: "person.circle.fill")
                                 .font(.largeTitle)
-                                .foregroundColor(.green)
+                                .foregroundColor(.black)
                             VStack(alignment: .leading) {
                                 Text(session.contactName ?? "Unknown")
                                     .font(.headline)
@@ -86,11 +88,20 @@ struct HomeView: View {
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $searchText, prompt: "Search by name...")
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    HStack {
-                        Image(systemName: "envelope")
-                        Text("Schat")
+                ToolbarItem(placement: .topBarLeading) {
+                    Button{
+                        withAnimation {
+                            isOnboarding = true
+                        }
+                    }label:{
+                        Image(systemName: "questionmark.circle")
+                            .resizable()
+                            .frame(width: 20, height: 20)
                     }
+                }
+                
+                ToolbarItem(placement: .principal) {
+                    Text("Schat")
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -105,11 +116,14 @@ struct HomeView: View {
                 ChatRoomView(session: session)
                     .toolbar(.hidden, for: .tabBar)
             }
-            .sheet(isPresented: $showContactSheet) {
+            .sheet(isPresented: $showContactSheet, onDismiss: {
+                if let contact = selectedContactToNavigate {
+                    openChat(with: contact)
+                    selectedContactToNavigate = nil
+                }
+            }) {
                 ContactListView { selectedContact in
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        openChat(with: selectedContact)
-                    }
+                    selectedContactToNavigate = selectedContact
                 }
             }
         }

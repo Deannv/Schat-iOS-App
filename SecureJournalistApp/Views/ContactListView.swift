@@ -32,10 +32,47 @@ struct ContactListView: View {
     
     var onSelectContact: (Contact) -> Void
     
+    @State private var searchContact = ""
+    
+    var filteredContacts: [Contact] {
+        if searchContact.isEmpty {
+            return Array(contacts)
+        } else {
+            return contacts.filter { contact in
+                (contact.name ?? "").localizedCaseInsensitiveContains(searchContact)
+            }
+        }
+    }
+    
     var body: some View {
         NavigationStack {
+            
+            if filteredContacts.isEmpty {
+                VStack {
+                    VStack(alignment: .center){
+                        Image(systemName: "person.text.rectangle")
+                            .resizable()
+                            .frame(width: 70, height: 60)
+                            .foregroundStyle(Color(.systemGray3))
+                        Text(searchContact.isEmpty ?
+                             "Add new contact to start a conversation."
+                             : "No results were found.")
+                        .multilineTextAlignment(.center)
+                        .foregroundColor(Color(.systemGray3))
+                        .padding()
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.horizontal, 20)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20).stroke(Color(.systemGray3), style: StrokeStyle(lineWidth: 1, dash: [10, 5]))
+                    )
+                }
+                .padding()
+            }
+            
             List {
-                ForEach(contacts) { contact in
+                ForEach(filteredContacts) { contact in
                     Button(action: {
                         onSelectContact(contact)
                         dismiss()
@@ -43,7 +80,7 @@ struct ContactListView: View {
                         HStack {
                             Image(systemName: "person.crop.circle.fill")
                                 .font(.title)
-                                .foregroundColor(.blue)
+                                .foregroundColor(.black)
                             
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(contact.name ?? "Unknown")
@@ -59,12 +96,11 @@ struct ContactListView: View {
                             }
                         }
                     }
-                    // Aksi Geser (Swipe Actions) untuk Edit dan Hapus
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button(role: .destructive) {
                             deleteContact(contact)
                         } label: {
-                            Label("Hapus", systemImage: "trash")
+                            Label("Delete", systemImage: "trash")
                         }
                         
                         Button {
@@ -76,7 +112,8 @@ struct ContactListView: View {
                     }
                 }
             }
-            .navigationTitle("Pilih Kontak")
+            .searchable(text: $searchContact, prompt: "Search by name...")
+            .navigationTitle("New chat")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -85,29 +122,27 @@ struct ContactListView: View {
                     }
                 }
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Tutup") { dismiss() }
+                    Button("Close") { dismiss() }
                 }
             }
-            // Alert Tambah Kontak
-            .alert("Tambah Kontak Baru", isPresented: $showAddContactAlert) {
-                TextField("Nama / Alias (Bebas)", text: $newName)
-                TextField("ID Perangkat Kontak (UUID)", text: $newUserID)
-                SecureField("Password Bersama", text: $newPassword)
+            .alert("Add new contact", isPresented: $showAddContactAlert) {
+                TextField("Name / Initial", text: $newName)
+                TextField("User ID", text: $newUserID)
+                SecureField("Shared Password", text: $newPassword)
                 
-                Button("Batal", role: .cancel) { resetAddForm() }
-                Button("Simpan") { addContact() }
+                Button("Cancel", role: .cancel) { resetAddForm() }
+                Button("Save") { addContact() }
             } message: {
-                Text("Masukkan nama, ID asli dari lawan bicara, dan password rahasia yang telah disepakati.")
+                Text("Insert name, ID and shared password that you have agreed.")
             }
-            // Alert Edit Kontak
-            .alert("Edit Kontak", isPresented: $showEditContactAlert) {
-                TextField("Nama / Alias", text: $editName)
-                SecureField("Password Baru (Kosongkan jika tetap)", text: $editPassword)
+            .alert("Edit contact", isPresented: $showEditContactAlert) {
+                TextField("Nama / Initial", text: $editName)
+                SecureField("New password (leave it empty to keep the old one)", text: $editPassword)
                 
-                Button("Batal", role: .cancel) { resetEditForm() }
-                Button("Simpan") { saveEdit() }
+                Button("Cancel", role: .cancel) { resetEditForm() }
+                Button("Update") { saveEdit() }
             } message: {
-                Text("ID: \(readOnlyUserID)\n(ID tidak dapat diubah)")
+                Text("ID: \(readOnlyUserID)\n(ID cannot be changed)")
             }
         }
     }
@@ -149,8 +184,8 @@ struct ContactListView: View {
     private func prepareEdit(for contact: Contact) {
         contactToEdit = contact
         editName = contact.name ?? ""
-        readOnlyUserID = (contact.value(forKey: "userID") as? String) ?? "Tidak diketahui"
-        editPassword = "" // Biarkan kosong agar user tidak perlu mengetik ulang jika tidak ingin diganti
+        readOnlyUserID = (contact.value(forKey: "userID") as? String) ?? "Unknown"
+        editPassword = ""
         showEditContactAlert = true
     }
     
@@ -159,16 +194,13 @@ struct ContactListView: View {
         let oldName = contact.name ?? ""
         
         withAnimation {
-            // 1. Tangani Perubahan Password & Nama di Keychain
             if oldName != editName {
-                // Nama berubah, pindahkan password lama ke kunci nama baru (atau update jika diketik baru)
                 let oldPassword = KeychainHelper.shared.getPassword(forContact: oldName) ?? ""
                 let passToSave = editPassword.isEmpty ? oldPassword : editPassword
                 
                 KeychainHelper.shared.deletePassword(forContact: oldName)
                 KeychainHelper.shared.savePassword(passToSave, forContact: editName)
                 
-                // 2. Sinkronisasi Nama di ChatSession (Agar riwayat chat tidak hilang)
                 let request: NSFetchRequest<ChatSession> = ChatSession.fetchRequest()
                 request.predicate = NSPredicate(format: "contactName == %@", oldName)
                 if let sessions = try? viewContext.fetch(request) {
@@ -178,11 +210,9 @@ struct ContactListView: View {
                 }
                 
             } else if !editPassword.isEmpty {
-                // Nama sama, tapi password diupdate
                 KeychainHelper.shared.savePassword(editPassword, forContact: oldName)
             }
             
-            // 3. Simpan Perubahan Nama ke CoreData
             contact.name = editName
             try? viewContext.save()
             resetEditForm()

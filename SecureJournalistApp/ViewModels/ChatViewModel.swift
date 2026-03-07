@@ -190,6 +190,11 @@ class ChatViewModel: ObservableObject {
     // MARK: - 4. Pengiriman (Upload)
     
     func sendMessage() {
+        if currentRecordingTime == 0{
+            errorMessage = "Please record a voice note before sending the message.";
+            return
+        }
+        
         guard let coverImage = selectedCoverImage, let audioURL = audioRecorder.recordedFileURL else { return }
         guard !contactUserID.isEmpty else { errorMessage = "Contact ID is invalid or incorrect."; return }
         

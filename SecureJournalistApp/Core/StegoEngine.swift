@@ -9,41 +9,44 @@ import Foundation
 import UIKit
 import CoreGraphics
 
+/// Mesin utama Steganografi: Embed & Extract
 class StegoEngine {
     
     static let shared = StegoEngine()
+    private init() {}
     
-    // MARK: - Embedding Process (Menyisipkan)
+    // MARK: - Embedding (Menyisipkan)
     
-    /// Menyisipkan data terenkripsi ke dalam gambar menggunakan Password
+    /// Menyisipkan data Audio ke dalam Gambar (Randomized LSB)
     func embed(audioData: Data, into image: UIImage, password: String) -> UIImage? {
         
-        // 1. Siapkan Seed dari Password
+        // 0. Normalisasi Orientasi Gambar (MEMPERBAIKI BUG GAMBAR MIRING)
+        // Memastikan piksel gambar digambar ulang agar tegak lurus sebelum dimanipulasi
+        let normalizedImage = image.fixedOrientation()
+        
+        // 1. Inisialisasi PRNG dengan Seed Password
         let seed = CryptoManager.shared.deriveSeed(from: password)
         var prng = DeterministicPRNG(seed: seed)
         
-        // 2. Konversi Gambar ke Bitmap (CGImage)
-        guard let cgImage = image.cgImage else {
-            print("Gagal mendapatkan CGImage.")
-            return nil
-        }
+        // 2. Siapkan Bitmap Context
+        guard let cgImage = normalizedImage.cgImage else { return nil }
         let width = cgImage.width
         let height = cgImage.height
         let totalPixels = width * height
         
-        // 3. Konversi Data Audio ke Array of Bits [0, 1, 1, 0...]
-        // Header: 32 bit pertama adalah Panjang Data (UInt32)
+        // 3. Konversi Audio Data ke Bit Array
+        // Format: [32-bit Panjang Data] + [Data Audio]
         let bitsToHide = convertDataToBits(audioData)
         
-        // Cek Kapasitas: 1 bit per piksel
+        // Cek Kapasitas (1 bit per piksel)
         if bitsToHide.count > totalPixels {
-            print("Error: Gambar terlalu kecil. Butuh \(bitsToHide.count) piksel, tersedia \(totalPixels).")
+            print("Error: Kapasitas gambar tidak cukup. Butuh \(bitsToHide.count), ada \(totalPixels).")
             return nil
         }
         
-        // 4. Siapkan Context Bitmap untuk memodifikasi piksel
+        // 4. Siapkan Buffer Memori untuk Pixel Manipulation
         let colorSpace = CGColorSpaceCreateDeviceRGB()
-        let bytesPerPixel = 4 // Format RGBA
+        let bytesPerPixel = 4 // RGBA
         let bytesPerRow = bytesPerPixel * width
         let rawData = UnsafeMutablePointer<UInt8>.allocate(capacity: height * bytesPerRow)
         defer { rawData.deallocate() }
@@ -58,8 +61,8 @@ class StegoEngine {
         
         context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
         
-        // 5. Logika Penyisipan Acak (Randomized LSB)
-        var usedCoordinates = Set<Int>() // Set untuk melacak piksel yang sudah dipakai (Collision Handling)
+        // 5. Proses Penyisipan Bit Acak
+        var usedCoordinates = Set<Int>() // Untuk Collision Handling
         
         for bit in bitsToHide {
             var pixelIndex = prng.next(upperBound: totalPixels)
@@ -70,51 +73,48 @@ class StegoEngine {
             }
             usedCoordinates.insert(pixelIndex)
             
-            // Akses data piksel di buffer
-            // Struktur Byte: [R, G, B, A] -> Kita ubah kanal B (index + 2)
+            // Manipulasi LSB pada Kanal BIRU (Blue Channel)
+            // Struktur Pixel di memori: [Red, Green, Blue, Alpha]
             let byteIndex = pixelIndex * bytesPerPixel
             let blueIndex = byteIndex + 2
             
             var blueValue = rawData[blueIndex]
             
-            // Teknik LSB Replacement:
-            // 1. Matikan bit terakhir (AND 11111110 / 0xFE)
-            // 2. Masukkan bit pesan (OR bit)
+            // Logika LSB: (Nilai & 11111110) | Bit Pesan
             blueValue = (blueValue & 0xFE) | bit
-            
             rawData[blueIndex] = blueValue
         }
         
-        // 6. Buat Gambar Baru
+        // 6. Buat Gambar Baru (Stego Image)
         guard let newCGImage = context.makeImage() else { return nil }
         return UIImage(cgImage: newCGImage)
     }
     
-    // MARK: - Extraction Process (Mengekstrak)
+    // MARK: - Extraction (Mengekstrak)
     
-    /// Mengekstrak data audio dari gambar steganografi
+    /// Mengekstrak data Audio dari Gambar
     func extract(from image: UIImage, password: String) -> Data? {
+        // Saat ekstraksi, kita tidak perlu menormalisasi gambar karena
+        // gambar hasil embed sudah dinormalisasi dan tidak memiliki masalah metadata.
         
-        // 1. Siapkan Seed & PRNG (Harus sama persis dengan proses Embed)
+        // 1. Setup PRNG (Seed harus sama)
         let seed = CryptoManager.shared.deriveSeed(from: password)
         var prng = DeterministicPRNG(seed: seed)
         
-        // 2. Akses Data Bitmap
         guard let cgImage = image.cgImage else { return nil }
         let width = cgImage.width
         let height = cgImage.height
         let totalPixels = width * height
         let bytesPerPixel = 4
-        let bytesPerRow = bytesPerPixel * width
         
-        // Ambil data raw dari gambar
+        // Akses Data Raw
         guard let dataProvider = cgImage.dataProvider,
               let data = dataProvider.data,
               let rawData = CFDataGetBytePtr(data) else { return nil }
         
         var usedCoordinates = Set<Int>()
         
-        // --- TAHAP A: Baca Header Panjang Data (32 Bit Pertama) ---
+        // 2. Baca Header (32 bit pertama = Panjang Data)
         var lengthBits = [UInt8]()
         for _ in 0..<32 {
             var pixelIndex = prng.next(upperBound: totalPixels)
@@ -124,26 +124,20 @@ class StegoEngine {
             usedCoordinates.insert(pixelIndex)
             
             let blueIndex = (pixelIndex * bytesPerPixel) + 2
-            let bit = rawData[blueIndex] & 1 // Ambil LSB
+            let bit = rawData[blueIndex] & 1
             lengthBits.append(bit)
         }
         
-        // Konversi 32 bits header menjadi Int (Panjang Data Audio)
-        guard let dataLength = convertBitsToUInt32(lengthBits) else {
-            print("Gagal membaca header panjang data.")
-            return nil
-        }
+        guard let dataLength = convertBitsToUInt32(lengthBits) else { return nil }
         
-        // Validasi Panjang Data (Sanity Check)
-        // Jika panjang data tidak masuk akal (misal > kapasitas gambar), berarti password salah atau gambar bukan stego.
+        // Sanity Check: Jika panjang data > total piksel, password pasti salah
         if dataLength > (totalPixels - 32) || dataLength == 0 {
-            print("Header length invalid: \(dataLength). Password mungkin salah.")
+            print("Gagal Ekstrak: Header length invalid (\(dataLength)). Password salah?")
             return nil
         }
         
-        // --- TAHAP B: Baca Data Audio (Payload) ---
+        // 3. Baca Payload Audio
         var audioBits = [UInt8]()
-        // Jumlah bit yang harus dibaca = Panjang Byte * 8
         let totalBitsToRead = Int(dataLength) * 8
         
         for _ in 0..<totalBitsToRead {
@@ -158,25 +152,22 @@ class StegoEngine {
             audioBits.append(bit)
         }
         
-        // Konversi bits kembali menjadi Data
         return convertBitsToData(audioBits)
     }
     
-    // MARK: - Helper Functions
+    // MARK: - Helper Methods
     
-    /// Mengubah Data menjadi array Bit [0, 1...] dengan Header 32-bit Length
     private func convertDataToBits(_ data: Data) -> [UInt8] {
         var bits = [UInt8]()
         
-        // 1. Tambahkan Header Panjang (32 bit Big Endian)
+        // Header Panjang (32 bit)
         let length = UInt32(data.count)
         withUnsafeBytes(of: length.bigEndian) { buffer in
              for byte in buffer {
                  for i in 0..<8 { bits.append((byte >> (7 - i)) & 1) }
              }
         }
-        
-        // 2. Tambahkan Data Asli
+        // Body Data
         for byte in data {
             for i in 0..<8 {
                 bits.append((byte >> (7 - i)) & 1)
@@ -185,31 +176,45 @@ class StegoEngine {
         return bits
     }
     
-    /// Mengubah 32 bit array menjadi UInt32
     private func convertBitsToUInt32(_ bits: [UInt8]) -> UInt32? {
         guard bits.count == 32 else { return nil }
         var value: UInt32 = 0
         for bit in bits {
             value = (value << 1) | UInt32(bit)
         }
-        return value // Hasil ini sudah Big Endian value secara logika urutan bit
+        return value
     }
     
-    /// Mengubah array Bit menjadi Data
     private func convertBitsToData(_ bits: [UInt8]) -> Data {
         var bytes = [UInt8]()
         var currentByte: UInt8 = 0
-        
         for (index, bit) in bits.enumerated() {
-            // Geser bit masuk ke byte
             currentByte = (currentByte << 1) | bit
-            
-            // Setiap 8 bit, simpan sebagai 1 byte
             if (index + 1) % 8 == 0 {
                 bytes.append(currentByte)
                 currentByte = 0
             }
         }
         return Data(bytes)
+    }
+}
+
+// MARK: - UIImage Extension untuk Normalisasi Orientasi
+extension UIImage {
+    /// Menggambar ulang gambar agar orientasinya terkunci ke atas (.up)
+    /// dan menghapus ketergantungan pada metadata EXIF.
+    func fixedOrientation() -> UIImage {
+        // Jika sudah tegak, tidak perlu digambar ulang
+        if self.imageOrientation == .up {
+            return self
+        }
+        
+        // Mulai menggambar ulang gambar ke dalam konteks grafis baru
+        UIGraphicsBeginImageContextWithOptions(self.size, false, self.scale)
+        self.draw(in: CGRect(x: 0, y: 0, width: self.size.width, height: self.size.height))
+        let normalizedImage = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        
+        return normalizedImage ?? self
     }
 }

@@ -11,8 +11,7 @@ import UIKit
 class NetworkManager {
     static let shared = NetworkManager()
     
-    // Sesuaikan dengan IP yang ada di HTML Anda (192.168.1.6)
-    private let serverBaseURL = "https://schat.eivern.com/api"
+    private let serverBaseURL = "http://192.168.1.3:8000/api"
     
     // MARK: - 1. Upload Pesan (Sender)
     
@@ -25,15 +24,13 @@ class NetworkManager {
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.timeoutInterval = 15 // Timeout 15 detik
+        request.timeoutInterval = 15
         
-        // PENTING: Memaksa Laravel agar selalu merespons dengan JSON, bukan redirect ke HTML
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         
         let boundary = "Boundary-\(UUID().uuidString)"
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         
-        // Cek konversi gambar
         guard let imageData = image.pngData() else {
             completion(.failure(NSError(domain: "Gagal konversi PNG", code: 400)))
             return

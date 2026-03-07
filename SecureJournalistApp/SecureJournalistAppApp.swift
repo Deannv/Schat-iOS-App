@@ -11,20 +11,28 @@ import CoreData
 @main
 struct SecureJournalistApp: App {
     let persistenceController = PersistenceController.shared
-
+    @AppStorage("isOnboarding") var isOnboarding: Bool = true
+    
     var body: some Scene {
         WindowGroup {
-            TabView {
-                HomeView()
-                    .tabItem {
-                        Label("Pesan", systemImage: "message.fill")
-                    }
-                ProfileView()
-                    .tabItem {
-                        Label("Profil", systemImage: "person.fill")
-                    }
+            if isOnboarding {
+                OnboardingView()
+            } else {
+                TabView {
+                    HomeView()
+                        .tabItem {
+                            Label("Pesan", systemImage: "message.fill")
+                                .foregroundStyle(.black)
+                        }
+                    ProfileView()
+                        .tabItem {
+                            Label("Profil", systemImage: "person.fill")
+                                .foregroundStyle(.black)
+                        }
+                }
+                .tint(.black)
+                .environment(\.managedObjectContext, persistenceController.container.viewContext)
             }
-            .environment(\.managedObjectContext, persistenceController.container.viewContext)
         }
     }
 }
