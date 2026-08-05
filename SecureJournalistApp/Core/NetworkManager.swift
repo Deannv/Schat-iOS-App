@@ -11,7 +11,7 @@ import UIKit
 class NetworkManager {
     static let shared = NetworkManager()
     
-    private let serverBaseURL = "http://192.168.1.3:8000/api"
+    private let serverBaseURL = "http://172.20.10.2:8000/api"
     
     // MARK: - 1. Upload Pesan (Sender)
     
